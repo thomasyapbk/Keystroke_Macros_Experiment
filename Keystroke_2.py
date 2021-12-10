@@ -1,4 +1,6 @@
 ####Libraries ####
+from sys import is_finalizing
+from tkinter import Button
 from typing import Text
 import pyautogui as pag
 import time
@@ -8,52 +10,64 @@ import os
 import openpyxl
 from datetime import datetime
 
-datapath = "D:/04_MLC/Keystroke_Macros_Experiment" + "/" + "sample_data.xlsx"
+datapath = "D:/04_MLC/Keystroke_Macros_Experiment" + "/" + "sample_data_keystrokes.xlsx"
 
-
-""" Information on PyAutoGUI (https://pyautogui.readthedocs.io/en/latest/)
-screenWidth, screenHeight = pyautogui.size() # Get the size of the primary monitor.
-screenWidth, screenHeight 
-
-
-currentMouseX, currentMouseY = pyautogui.position() # Get the XY position of the mouse.
-currentMouseX, currentMouseY
-
-
-pyautogui.moveTo(100, 150) # Move the mouse to XY coordinates.
-
-pyautogui.click()          # Click the mouse.
-pyautogui.click(100, 200)  # Move the mouse to XY coordinates and click it.
-pyautogui.click('button.png') # Find where button.png appears on the screen and click it.
-
-pyautogui.move(400, 0)      # Move the mouse 400 pixels to the right of its current position.
-pyautogui.doubleClick()     # Double click the mouse.
-pyautogui.moveTo(500, 500, duration=2, tween=pyautogui.easeInOutQuad)  # Use tweening/easing function to move mouse over 2 seconds.
-
-pyautogui.write('Hello world!', interval=0.25)  # type with quarter-second pause in between each key
-pyautogui.press('esc')     # Press the Esc key. All key names are in pyautogui.KEY_NAMES
-
-with pyautogui.hold('shift'):  # Press the Shift key down and hold it.
-        pyautogui.press(['left', 'left', 'left', 'left'])  # Press the left arrow key 4 times.
-# Shift key is released automatically.
-
-pyautogui.hotkey('ctrl', 'c') # Press the Ctrl-C hotkey combination.
-
-pyautogui.alert('This is the message to display.') # Make an alert box appear and pause the program until OK is clicked.
-"""
 #Load Data from excel
 df = pd.read_excel(datapath, engine='openpyxl')
 
-df.loc[1,'ASIC Report'] ## Returns "Description of report"
-df.loc[1,'Event 1001: Test legal checklist'] ## Returns "Commenced investigation"
+#df.loc[1,'ASIC Report'] ## Returns "Description of report"
+#df.loc[1,'Event 1001: Test legal checklist'] ## Returns "Commenced investigation"
 
-date1 = df.loc[3,'Event 1001: Test legal checklist'].strftime('%d/%m/%Y') 
+#date1 = df.loc[3,'Event 1001: Test legal checklist'].strftime('%d/%m/%Y') 
+
+
+
 
 ########### Start with PyAutoGUI
+section_lag = int(pag.prompt('Please select the time lag per section. Default is 5.','Select time'))
+key_lag = float(pag.prompt('Please select the time lag per keystroke. Default is 0.5.','Select time'))
+pag.alert(text = 'After clicking the Ok button, move mouse over the webpage on the windows taskbar.')
+def have_input(keystroke):
+        for i in range(0,len(keystroke)):
+                if keystroke[i] == "x":
+                        return True
+                else:
+                        return False
 
-def press_rep(input,times):
-        for i in range(0,times):
-                pag.press(input)
+def keystroke_mapping(keystroke, proposed_input):
+        if have_input:
+                for i in range(0,len(keystroke)):
+                        keystroke_mapping_input(keystroke[i],proposed_input)
+                        time.sleep(0.5)
+                
+        else:
+                for j in range(0,len(keystroke)):
+                        keystroke_mapping_no_input(keystroke[j])
+                        time.sleep(0.5)
+        
+
+def keystroke_mapping_no_input(key):
+        if key == "-":
+                pag.press('tab')
+        elif key == ".":
+                pag.press('space')
+        elif key == "u":
+                pag.press('up')
+        elif key == "d":
+                pag.press('down')
+
+def keystroke_mapping_input(key,data):
+        if key == "-":
+                pag.press('tab')
+        elif key == ".":
+                pag.press('space')
+        elif key == "u":
+                pag.press('up')
+        elif key == "d":
+                pag.press('down')
+        elif key == "x":
+                pag.write(str(data))
+
 
 
 screenWidth, screenHeight = pag.size()
@@ -62,17 +76,29 @@ time.sleep(2)
 ############INSTRUCTION################                                Move mouse to position of web browser with ASIC Breach Reporting
 pag.click(pag.position())
 pag.click(screenHeight/2,screenWidth/2)
-#Page 1
-press_rep('tab',8)
-pag.press('space')
-time.sleep(5)
+######## Start reading keystrokes and inputs
+#for i in range(0,len(df)):
+for i in range(0,len(df)):
+        if i+1 < len(df):
+                next_section = df.loc[i+1,"Section"]
+        proposed_response = df.loc[i,"Proposed Response"]
+        if isinstance(proposed_response,datetime):
+            proposed_response = str(proposed_response.strftime('%d/%m/%Y'))
+        keystroke = df.loc[i,"Keystrokes"]
+        keystroke_mapping(keystroke, str(proposed_response))
+        if not(pd.isna(next_section)):
+                time.sleep(5)
+pag.alert(text = 'The Script is finished. Please check the Review Page for any errors')
 
-#Page 2
-press_rep('tab',8)
-pag.press('space')
-time.sleep(5)
+#
+#for i in range(0,10):
+#        proposed_response = df.loc[i,"Proposed Response"]
+#        keystroke = df.loc[i,"Keystrokes"]
+#        print( "The proposed response is : ", proposed_response)
+#        print( "The Keystroke associated with the response is : ", keystroke)
 
-#Page 3
-press_rep('tab',3)
-pag.write(date1)
-##Enter Date
+
+
+#Add in pop up to say do not touch the keyboard and input for wait timing.
+#I need an override
+#Figure out a way to populate the next sheet
